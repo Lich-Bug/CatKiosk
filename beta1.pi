@@ -1,0 +1,226 @@
+import os
+import string
+import commands 
+
+from urllib2 import urlopen
+
+from bs4 import BeautifulSoup
+
+import requests
+
+tmp_string= "test"
+while tmp_string.find("Elyria") < 0:
+     try:
+        site = requests.get("http://fpm.petfinder.com/petlist/petlist.cgi?shelter=OH166&haspets=&hasprevious=&title=&limit=200&moreinfo=&style=10&sort=&status=A&picsize=&color1=&color2=&breed=&age=&size=")
+        tmp_string = site.text
+     except Exception:
+        pass 
+
+os.system("sudo rm /home/pi/webscrubber/pictures/*.jpg*")
+print site.text
+
+sitetext = open("sitetext", "wb")
+
+sitetext.write(site.text)
+
+soup = BeautifulSoup(site.text)
+
+image_number = 1
+for tag in soup.findAll('img'):
+    image_url = tag['src']
+    if image_url.find("cloudfront")>0:
+	#print(tag['src'])
+        #77 1150
+	image_url = image_url[:77] +'1150'
+        #image_url = image_url[:70]+'&height=700'
+	tmp_string = image_url[43:51]
+	print image_url
+        #exit()
+	image_number = image_number + 1
+        print tmp_string+'k'
+        cat_name="12345678901234567890123456789012345"
+       
+        while len(cat_name)  > 30:
+           try:
+	      site1 = requests.get("http://m.petfinder.com/petdetail/" + tmp_string + "?")
+	      info = site1.text  
+              #print info 
+              #exit()
+	      start = info.find("<h1>About ")
+	      end = info.find("</h1>")
+	      #print info
+              cat_name = info[start + 10:end]
+           except Exception:
+               pass
+
+	info1 = info[end:]
+	start1 = info1.find("clear")
+	end1 = info1.find("<h2>More")
+	cat_description = info1[start1 + 14:end1]
+	
+
+	i = 0
+
+        #print cat_name+'k'
+	while i<len(cat_name)-1:
+	      if cat_name[i] == ' ':
+	      	 new = cat_name[:i] + '_' + cat_name[i+1:]
+		 cat_name = new
+		 #print cat_name
+	      i = i + 1
+	tmp_string = cat_name
+	i = 0
+	while i<len(cat_description)-1:
+	      if cat_description[i] == '\n':
+	      	 new = cat_description[:i] + ' ' + cat_description[i+1:]
+		 cat_description = new
+	      i = i + 1
+	#print cat_description
+
+
+
+	line = 0
+
+	read = 1
+	while read == 1:
+	      try:
+		file = open("/home/pi/webscrubber/pictures/" + tmp_string + ".jpg", "wb")
+    		file.write(urlopen("http:" + image_url).read())
+    		file.close()
+		read = 0
+	      except Exception:
+	      	     read = 1
+		     pass
+
+       
+        try:
+        	#print image_url
+		pointsize = 80
+		x = 1010
+		y = 100			
+		linesize = 39
+		end = linesize
+		characterstart = 0
+
+		name = tmp_string
+		tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -resize 1000 /home/pi/webscrubber/pictures/"+ name+".jpg"
+		#print tmp
+		os.system(tmp)
+		tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg /home/pi/webscrubber/blank1.jpg +append /home/pi/webscrubber/pictures/"+ name+".jpg"
+		#print tmp
+		os.system(tmp)
+		tmp = "identify /home/pi/webscrubber/pictures/"+ name+".jpg"
+		width = commands.getoutput(tmp)
+		print width
+		start = width.find("JPEG") + 5
+		tmp = width
+		characterstart = start
+		while width[characterstart] != 'x':
+      	    		      characterstart = characterstart + 1
+		picturewidth = int(width[start:characterstart])
+	
+		print tmp,start,characterstart
+ 
+	
+
+		end = 0
+
+		#tmp_name = cat_name
+		#while end < len(tmp_name):
+		      #if tmp_name[end] == '_':
+      	      	#	tmp_name[end] = ' '
+	     	# end = end + 1
+		tmp_name = cat_name.replace("_", " ")
+		#os.system("cp tmp_string.jpg "+ name+".jpg")
+		tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(pointsize)+" -fill red -annotate +"+str(x)+"+"+str(y)+" '"+tmp_name+"' /home/pi/webscrubber/pictures/"+ name+".jpg"
+		print tmp
+		os.system(tmp)
+		y = 600
+		#ah
+		pointsize = 25
+		#shfs
+		linesize = 90 * picturewidth / 1150 / 2 - 7
+		#skl
+		#print cat_description
+		cat_description = cat_description.replace("&#39;", "^")
+		end = linesize
+		while end < len(cat_description):
+      
+		
+
+			while cat_description[characterstart] == ' ' or cat_description[characterstart] == '\n':
+      	    	      		characterstart = characterstart + 1   
+      			while cat_description[end] != ' ':
+      	    	      		end = end - 1
+		
+		      
+			tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(pointsize)+" -fill red -undercolor white -annotate +"+str(x)+"+"+str(y)+" '"+cat_description[characterstart:end]+"' /home/pi/webscrubber/pictures/"+ name+".jpg"
+        		#print tmp
+			#os.system(tmp)
+			line = line + 1
+        
+
+        		characterstart = end
+        		end = characterstart + linesize
+        		y = y + pointsize
+		if characterstart<len(cat_description):
+		
+			#print cat_description[characterstart:]
+			while cat_description[characterstart] == ' ' and characterstart<len(cat_description) -2:
+      	      	      		characterstart = characterstart + 1   
+
+     
+			tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(pointsize)+" -fill red -undercolor white -annotate +"+str(x)+"+"+str(y)+" '"+cat_description[characterstart:end]+"' /home/pi/webscrubber/pictures/"+ name+".jpg"
+			print tmp
+
+			#os.system(tmp)
+			line = line + 1
+		
+
+		characterstart = 0
+		y = 750 - line*pointsize
+                y = 130
+		end = linesize
+		while end < len(cat_description):
+      
+		
+
+			while cat_description[characterstart] == ' ' or cat_description[characterstart] == '\n':
+      	    		      characterstart = characterstart + 1   
+      			while cat_description[end] != ' ':
+      	    	      		end = end - 1
+		
+		      
+			tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(pointsize)+" -fill red -undercolor white -annotate +"+str(x)+"+"+str(y)+" '"+cat_description[characterstart:end]+"' /home/pi/webscrubber/pictures/"+ name+".jpg"
+        		print tmp
+			os.system(tmp)
+        
+
+        		characterstart = end
+        		end = characterstart + linesize
+        		y = y + pointsize
+		if characterstart<len(cat_description):
+		
+			#print cat_description[characterstart:]
+			while cat_description[characterstart] == ' ' and characterstart<len(cat_description) -2:
+      	      	      		characterstart = characterstart + 1   
+
+     
+			tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(pointsize)+" -fill red -undercolor white -annotate +"+str(x)+"+"+str(y)+" '"+cat_description[characterstart:end]+"' /home/pi/webscrubber/pictures/"+ name+".jpg"
+			print tmp
+
+			os.system(tmp)
+
+	                tmp = "convert /home/pi/webscrubber/pictures/"+ name+".jpg -pointsize "+str(2*pointsize)+" -fill red -undercolor white -annotate +"+str(x)+"+"+str(y+4*pointsize)+" 'Touch Screen For Pet Kiosk!!' /home/pi/webscrubber/pictures/"+ name+".jpg"
+			print tmp
+
+			os.system(tmp)
+
+        except Exception:
+	      	     read = 1
+		     pass
+   
+os.system("sudo rm /home/pi/webscrubber/pictures1/*.jpg*")
+
+os.system("sudo cp /home/pi/webscrubber/pictures/*.jpg /home/pi/webscrubber/pictures1/")
+
